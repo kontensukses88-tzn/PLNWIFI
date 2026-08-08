@@ -1,0 +1,6 @@
+{
+  "name": "Pembuat Struk Listrik & Internet",
+  "description": "Aplikasi otomatisasi pembuatan, cetak PDF, dan pengelolaan struk pembayaran PLN dan Internet / WiFi secara instan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

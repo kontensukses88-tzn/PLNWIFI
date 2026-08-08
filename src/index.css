@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-sheet-wrapper, #print-sheet-wrapper * {
+    visibility: visible;
+  }
+  #print-sheet-wrapper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}
+
