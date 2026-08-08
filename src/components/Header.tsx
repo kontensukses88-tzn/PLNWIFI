@@ -1,10 +1,10 @@
 import React from 'react';
-import { Zap, Wifi, History, Sparkles, Settings, FileText, Store } from 'lucide-react';
+import { Zap, History, Settings, FileText, Store } from 'lucide-react';
 import { StoreConfig } from '../types';
 
 interface HeaderProps {
-  activeTab: 'CREATE' | 'HISTORY' | 'AI_SCAN' | 'SETTINGS';
-  setActiveTab: (tab: 'CREATE' | 'HISTORY' | 'AI_SCAN' | 'SETTINGS') => void;
+  activeTab: 'CREATE' | 'HISTORY' | 'SETTINGS';
+  setActiveTab: (tab: 'CREATE' | 'HISTORY' | 'SETTINGS') => void;
   storeConfig: StoreConfig;
   totalReceiptsCount: number;
 }
@@ -55,19 +55,6 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             <button
-              id="tab-btn-ai-scan"
-              onClick={() => setActiveTab('AI_SCAN')}
-              className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'AI_SCAN'
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold shadow-md'
-                  : 'text-indigo-300 hover:text-white hover:bg-slate-800/60'
-              }`}
-            >
-              <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-              <span>Scan / Paste AI</span>
-            </button>
-
-            <button
               id="tab-btn-history"
               onClick={() => setActiveTab('HISTORY')}
               className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all relative ${
@@ -102,14 +89,6 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Quick Action Button for Mobile */}
           <div className="flex md:hidden items-center space-x-2">
             <button
-              id="mobile-ai-btn"
-              onClick={() => setActiveTab('AI_SCAN')}
-              className="p-2 rounded-lg bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-medium flex items-center space-x-1"
-            >
-              <Sparkles className="w-4 h-4 text-amber-300" />
-              <span>Scan AI</span>
-            </button>
-            <button
               id="mobile-settings-btn"
               onClick={() => setActiveTab('SETTINGS')}
               className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
@@ -132,17 +111,6 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <FileText className="w-4 h-4" />
           <span className="text-[10px]">Buat Struk</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('AI_SCAN')}
-          className={`flex-1 py-1.5 px-1 rounded-xl text-center font-medium flex flex-col items-center justify-center space-y-1 transition-all ${
-            activeTab === 'AI_SCAN'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold shadow-md'
-              : 'text-indigo-400 hover:text-indigo-300'
-          }`}
-        >
-          <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-          <span className="text-[10px]">Scan AI</span>
         </button>
         <button
           onClick={() => setActiveTab('HISTORY')}

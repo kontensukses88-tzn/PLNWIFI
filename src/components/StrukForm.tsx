@@ -28,7 +28,6 @@ interface StrukFormProps {
   setFormData: React.Dispatch<React.SetStateAction<StrukItem>>;
   storeConfig: StoreConfig;
   onSaveAndPreview: () => void;
-  onOpenAiScan: () => void;
 }
 
 export const StrukForm: React.FC<StrukFormProps> = ({
@@ -36,7 +35,6 @@ export const StrukForm: React.FC<StrukFormProps> = ({
   setFormData,
   storeConfig,
   onSaveAndPreview,
-  onOpenAiScan,
 }) => {
   // Recalculate total whenever mainAmount, adminFee, ppnAmount, penaltyFee change
   useEffect(() => {
@@ -194,16 +192,6 @@ export const StrukForm: React.FC<StrukFormProps> = ({
             Pilih jenis transaksi, isi detail pelanggan, lalu cetak PDF atau kirim ke WhatsApp.
           </p>
         </div>
-
-        {/* AI Quick Button */}
-        <button
-          id="btn-ai-parser-shortcut"
-          onClick={onOpenAiScan}
-          className="inline-flex items-center justify-center space-x-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium text-xs shadow-lg shadow-indigo-500/20 transition-all cursor-pointer"
-        >
-          <Sparkles className="w-4 h-4 text-amber-300 animate-spin" style={{ animationDuration: '4s' }} />
-          <span>Isi Otomatis via AI (Scan/Text)</span>
-        </button>
       </div>
 
       {/* Main Service Selector Tabs */}

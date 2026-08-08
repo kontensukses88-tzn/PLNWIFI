@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { StrukForm } from './components/StrukForm';
 import { StrukPreview } from './components/StrukPreview';
-import { AiParserModal } from './components/AiParserModal';
 import { HistoryList } from './components/HistoryList';
 import { StoreSettingsModal } from './components/StoreSettingsModal';
 import { PrintSheet } from './components/PrintSheet';
@@ -34,7 +33,7 @@ import { User } from 'firebase/auth';
 export default function App() {
   const [storeConfig, setStoreConfig] = useState<StoreConfig>(loadStoreConfig());
   const [history, setHistory] = useState<StrukItem[]>(loadReceiptHistory());
-  const [activeTab, setActiveTab] = useState<'CREATE' | 'PREVIEW' | 'HISTORY' | 'AI_SCAN' | 'SETTINGS'>('CREATE');
+  const [activeTab, setActiveTab] = useState<'CREATE' | 'PREVIEW' | 'HISTORY' | 'SETTINGS'>('CREATE');
 
   // Firebase Auth & Cloud Sync States
   const [user, setUser] = useState<User | null>(null);
@@ -129,15 +128,6 @@ export default function App() {
     setActiveTab('PREVIEW');
   };
 
-  const handleParsedResultFromAi = (parsedItem: StrukItem) => {
-    setFormData(parsedItem);
-    const updatedHistory = addReceiptToHistory(parsedItem);
-    setHistory(updatedHistory);
-    // Cloud sync to Firestore
-    saveReceiptToFirestore(parsedItem);
-    setActiveTab('PREVIEW');
-  };
-
   const handleSelectReceiptFromHistory = (item: StrukItem) => {
     setFormData(item);
     setActiveTab('PREVIEW');
@@ -189,7 +179,6 @@ export default function App() {
             setFormData={setFormData}
             storeConfig={storeConfig}
             onSaveAndPreview={handleSaveAndPreview}
-            onOpenAiScan={() => setActiveTab('AI_SCAN')}
           />
         )}
 
@@ -203,15 +192,6 @@ export default function App() {
               setHistory(updated);
               saveReceiptToFirestore(item);
             }}
-            user={user}
-            onGoogleSignIn={handleGoogleSignIn}
-          />
-        )}
-
-        {activeTab === 'AI_SCAN' && (
-          <AiParserModal
-            onParsedResult={handleParsedResultFromAi}
-            storeConfig={storeConfig}
           />
         )}
 
