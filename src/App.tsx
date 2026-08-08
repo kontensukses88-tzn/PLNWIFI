@@ -17,11 +17,83 @@ import {
   saveReceiptHistory
 } from './utils/storage';
 import { generateRefNo, generate20DigitToken, calculateKwhEstimate } from './utils/formatters';
+import {
+  initAuth,
+  googleSignIn,
+  logoutUser,
+  subscribeToReceipts,
+  saveReceiptToFirestore,
+  deleteReceiptFromFirestore,
+  subscribeToStoreConfig,
+  saveStoreConfigToFirestore,
+  testFirestoreConnection
+} from './lib/firebase';
+import { User } from 'firebase/auth';
 
 export default function App() {
   const [storeConfig, setStoreConfig] = useState<StoreConfig>(loadStoreConfig());
   const [history, setHistory] = useState<StrukItem[]>(loadReceiptHistory());
   const [activeTab, setActiveTab] = useState<'CREATE' | 'PREVIEW' | 'HISTORY' | 'AI_SCAN' | 'SETTINGS'>('CREATE');
+
+  // Firebase Auth & Cloud Sync States
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+
+  // Initialize Firebase Auth Listener and Firestore Realtime Subscriptions
+  useEffect(() => {
+    testFirestoreConnection();
+
+    const unsubscribeAuth = initAuth((currentUser) => {
+      setUser(currentUser);
+    }, () => {
+      setUser(null);
+    });
+
+    // Realtime Sync for Receipts from Firestore
+    const unsubscribeReceipts = subscribeToReceipts((cloudReceipts) => {
+      if (cloudReceipts && cloudReceipts.length > 0) {
+        setHistory(cloudReceipts);
+        saveReceiptHistory(cloudReceipts);
+      }
+    });
+
+    // Realtime Sync for Store Configuration from Firestore
+    const unsubscribeConfig = subscribeToStoreConfig((cloudConfig) => {
+      if (cloudConfig && cloudConfig.storeName) {
+        setStoreConfig(cloudConfig);
+        saveStoreConfig(cloudConfig);
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeReceipts();
+      unsubscribeConfig();
+    };
+  }, []);
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsLoggingIn(true);
+      const res = await googleSignIn();
+      if (res?.user) {
+        setUser(res.user);
+      }
+    } catch (err: any) {
+      console.error('Google Sign In error:', err);
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      setUser(null);
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
 
   // Active receipt form state
   const [formData, setFormData] = useState<StrukItem>(() => {
@@ -51,6 +123,8 @@ export default function App() {
   const handleSaveAndPreview = () => {
     const updatedHistory = addReceiptToHistory(formData);
     setHistory(updatedHistory);
+    // Cloud sync to Firestore
+    saveReceiptToFirestore(formData);
     setActiveTab('PREVIEW');
   };
 
@@ -58,6 +132,8 @@ export default function App() {
     setFormData(parsedItem);
     const updatedHistory = addReceiptToHistory(parsedItem);
     setHistory(updatedHistory);
+    // Cloud sync to Firestore
+    saveReceiptToFirestore(parsedItem);
     setActiveTab('PREVIEW');
   };
 
@@ -69,6 +145,7 @@ export default function App() {
   const handleDeleteReceipt = (id: string) => {
     const updated = deleteReceiptFromHistory(id);
     setHistory(updated);
+    deleteReceiptFromFirestore(id);
   };
 
   const handleClearHistory = () => {
@@ -79,6 +156,7 @@ export default function App() {
   const handleSaveConfig = (newConfig: StoreConfig) => {
     setStoreConfig(newConfig);
     saveStoreConfig(newConfig);
+    saveStoreConfigToFirestore(newConfig);
   };
 
   return (
@@ -88,7 +166,6 @@ export default function App() {
         activeTab={activeTab === 'PREVIEW' ? 'CREATE' : activeTab}
         setActiveTab={(tab) => {
           if (tab === 'CREATE' && activeTab === 'PREVIEW') {
-            // Keep active receipt if coming from preview
             setActiveTab('CREATE');
           } else {
             setActiveTab(tab);
@@ -96,6 +173,10 @@ export default function App() {
         }}
         storeConfig={storeConfig}
         totalReceiptsCount={history.length}
+        user={user}
+        onGoogleSignIn={handleGoogleSignIn}
+        onLogout={handleLogout}
+        isLoggingIn={isLoggingIn}
       />
 
       {/* Main Content View */}
@@ -118,7 +199,10 @@ export default function App() {
             onSaveHistory={(item) => {
               const updated = addReceiptToHistory(item);
               setHistory(updated);
+              saveReceiptToFirestore(item);
             }}
+            user={user}
+            onGoogleSignIn={handleGoogleSignIn}
           />
         )}
 
@@ -136,6 +220,8 @@ export default function App() {
             onSelectReceipt={handleSelectReceiptFromHistory}
             onDeleteReceipt={handleDeleteReceipt}
             onClearHistory={handleClearHistory}
+            user={user}
+            onGoogleSignIn={handleGoogleSignIn}
           />
         )}
 
@@ -154,10 +240,12 @@ export default function App() {
       <footer className="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div>
-            &copy; {new Date().getFullYear()} StrukKilat.id — Aplikasi Cetak Struk PLN & Internet Otomatis
+            &copy; {new Date().getFullYear()} StrukKilat.id — PPOB WiFi & PLN
           </div>
-          <div className="text-slate-400 font-medium">
-            Format Thermal 58mm / 80mm & Standard PDF
+          <div className="text-slate-400 font-medium flex items-center space-x-2">
+            <span>Thermal 58mm / 80mm & PDF</span>
+            <span>•</span>
+            <span className="text-emerald-400">Firebase & Google Sync</span>
           </div>
         </div>
       </footer>

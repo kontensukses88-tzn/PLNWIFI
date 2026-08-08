@@ -10,7 +10,10 @@ import {
   BookmarkPlus,
   ArrowLeft,
   Smartphone,
-  Maximize2
+  Maximize2,
+  Cloud,
+  ExternalLink,
+  Loader2
 } from 'lucide-react';
 import { StrukItem, StoreConfig, PaperSize } from '../types';
 import {
@@ -18,13 +21,18 @@ import {
   formatDateIndonesian,
   formatWhatsAppText
 } from '../utils/formatters';
-import { exportElementToPdf } from '../utils/pdfGenerator';
+import { exportElementToPdf, generatePdfBlob } from '../utils/pdfGenerator';
+import { User } from 'firebase/auth';
+import { uploadPdfToGoogleDrive } from '../lib/googleWorkspace';
+import { getAccessToken } from '../lib/firebase';
 
 interface StrukPreviewProps {
   struk: StrukItem;
   storeConfig: StoreConfig;
   onBackToEdit: () => void;
   onSaveHistory: (item: StrukItem) => void;
+  user: User | null;
+  onGoogleSignIn: () => void;
 }
 
 export const StrukPreview: React.FC<StrukPreviewProps> = ({
@@ -32,11 +40,51 @@ export const StrukPreview: React.FC<StrukPreviewProps> = ({
   storeConfig,
   onBackToEdit,
   onSaveHistory,
+  user,
+  onGoogleSignIn,
 }) => {
   const [paperSize, setPaperSize] = useState<PaperSize>(storeConfig.defaultPaperSize || '58mm');
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [savedStatus, setSavedStatus] = useState<boolean>(false);
+
+  // Google Drive Upload states
+  const [showDriveConfirmModal, setShowDriveConfirmModal] = useState<boolean>(false);
+  const [isUploadingDrive, setIsUploadingDrive] = useState<boolean>(false);
+  const [driveResultUrl, setDriveResultUrl] = useState<string | null>(null);
+  const [driveError, setDriveError] = useState<string | null>(null);
+
+  const handleInitiateDriveUpload = () => {
+    if (!user) {
+      onGoogleSignIn();
+      return;
+    }
+    setDriveResultUrl(null);
+    setDriveError(null);
+    setShowDriveConfirmModal(true);
+  };
+
+  const handleConfirmDriveUpload = async () => {
+    setIsUploadingDrive(true);
+    setDriveError(null);
+    try {
+      const accessToken = getAccessToken();
+      if (!accessToken) {
+        throw new Error('Akses token Google tidak ditemukan. Silakan login ulang dengan akun Google Anda.');
+      }
+      const pdfBlob = await generatePdfBlob('printable-struk-area', paperSize);
+      if (!pdfBlob) {
+        throw new Error('Gagal memproses gambar struk ke bentuk PDF.');
+      }
+      const fileName = `Struk_${struk.type}_${struk.refNo}.pdf`;
+      const res = await uploadPdfToGoogleDrive(pdfBlob, fileName, accessToken);
+      setDriveResultUrl(res.webViewLink);
+    } catch (err: any) {
+      setDriveError(err?.message || 'Gagal menyimpan file ke Google Drive.');
+    } finally {
+      setIsUploadingDrive(false);
+    }
+  };
 
   const handleDownloadPdf = async () => {
     setIsExporting(true);
@@ -119,10 +167,19 @@ export const StrukPreview: React.FC<StrukPreviewProps> = ({
           <button
             onClick={handleDownloadPdf}
             disabled={isExporting}
-            className="flex-1 md:flex-initial inline-flex items-center justify-center space-x-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all cursor-pointer"
+            className="flex-1 md:flex-initial inline-flex items-center justify-center space-x-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition-all cursor-pointer"
           >
             <Download className="w-4 h-4" />
-            <span>{isExporting ? 'Memproses PDF...' : 'Cetak / Download PDF'}</span>
+            <span>{isExporting ? 'Memproses PDF...' : 'Download PDF'}</span>
+          </button>
+
+          <button
+            onClick={handleInitiateDriveUpload}
+            className="flex-1 md:flex-initial inline-flex items-center justify-center space-x-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+            title="Simpan PDF ke Google Drive"
+          >
+            <Cloud className="w-4 h-4 text-indigo-200" />
+            <span>Simpan ke Drive</span>
           </button>
 
           <button
@@ -338,6 +395,94 @@ export const StrukPreview: React.FC<StrukPreviewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Google Drive Upload Confirmation Modal */}
+      {showDriveConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl text-white space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 rounded-xl">
+                <Cloud className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Simpan ke Google Drive</h3>
+                <p className="text-xs text-slate-400">Integrasi Google Workspace</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-300 space-y-2">
+              <p>
+                File PDF struk ini akan diunggah ke folder{' '}
+                <strong className="text-indigo-300 font-mono">"Struk Pembayaran Toko"</strong> di akun Google Drive Anda.
+              </p>
+              <p className="text-slate-400">
+                Nama File: <strong className="text-slate-200">Struk_{struk.type}_{struk.refNo}.pdf</strong>
+              </p>
+            </div>
+
+            {driveError && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                {driveError}
+              </div>
+            )}
+
+            {driveResultUrl ? (
+              <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-center space-y-3">
+                <p className="text-xs font-semibold text-indigo-300">
+                  Struk PDF berhasil tersimpan di Google Drive!
+                </p>
+                <a
+                  href={driveResultUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg transition-all"
+                >
+                  <span>Lihat File di Google Drive</span>
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            ) : (
+              <div className="flex items-center justify-end space-x-3 pt-2">
+                <button
+                  onClick={() => setShowDriveConfirmModal(false)}
+                  disabled={isUploadingDrive}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleConfirmDriveUpload}
+                  disabled={isUploadingDrive}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center space-x-2 shadow-lg transition-all disabled:opacity-50"
+                >
+                  {isUploadingDrive ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <span>Mengunggah...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Cloud className="w-4 h-4" />
+                      <span>Konfirmasi & Unggah</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {driveResultUrl && (
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => setShowDriveConfirmModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700"
+                >
+                  Tutup
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

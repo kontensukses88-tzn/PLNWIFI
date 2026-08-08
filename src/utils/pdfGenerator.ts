@@ -95,3 +95,66 @@ export const exportElementToPdf = async (
     return false;
   }
 };
+
+export const generatePdfBlob = async (
+  elementId: string,
+  paperSize: PaperSize = '58mm'
+): Promise<Blob | null> => {
+  try {
+    const element = document.getElementById(elementId);
+    if (!element) return null;
+
+    const canvas = await html2canvas(element, {
+      scale: 3,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      onclone: (clonedDoc) => {
+        const styleTags = Array.from(clonedDoc.getElementsByTagName('style'));
+        styleTags.forEach((styleTag) => {
+          if (styleTag.textContent && styleTag.textContent.includes('oklch')) {
+            styleTag.textContent = styleTag.textContent.replace(/oklch\([^)]+\)/g, '#000000');
+          }
+        });
+        const clonedEl = clonedDoc.getElementById(elementId);
+        if (clonedEl) {
+          clonedEl.style.backgroundColor = '#ffffff';
+          clonedEl.style.color = '#000000';
+        }
+      },
+    });
+
+    const imgData = canvas.toDataURL('image/png');
+    let pdf: jsPDF;
+
+    if (paperSize === '58mm') {
+      const widthMm = 58;
+      const heightMm = Math.max((canvas.height * widthMm) / canvas.width, 100);
+      pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: [widthMm, heightMm] });
+      pdf.addImage(imgData, 'PNG', 0, 0, widthMm, heightMm);
+    } else if (paperSize === '80mm') {
+      const widthMm = 80;
+      const heightMm = Math.max((canvas.height * widthMm) / canvas.width, 120);
+      pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: [widthMm, heightMm] });
+      pdf.addImage(imgData, 'PNG', 0, 0, widthMm, heightMm);
+    } else if (paperSize === 'CARD') {
+      const widthMm = 90;
+      const heightMm = Math.max((canvas.height * widthMm) / canvas.width, 140);
+      pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: [widthMm, heightMm] });
+      pdf.addImage(imgData, 'PNG', 0, 0, widthMm, heightMm);
+    } else {
+      pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+      const pageWidthMm = pdf.internal.pageSize.getWidth();
+      const marginMm = 15;
+      const printWidthMm = pageWidthMm - marginMm * 2;
+      const printHeightMm = (canvas.height * printWidthMm) / canvas.width;
+      pdf.addImage(imgData, 'PNG', marginMm, marginMm, printWidthMm, printHeightMm);
+    }
+
+    return pdf.output('blob');
+  } catch (error) {
+    console.error('Failed to create PDF blob:', error);
+    return null;
+  }
+};
