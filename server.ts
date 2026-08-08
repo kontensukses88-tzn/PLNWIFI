@@ -69,12 +69,44 @@ Ekstrak data berikut dari teks/gambar yang diberikan ke dalam JSON persis dengan
         contents = [`${prompt}\n\nTeks tagihan/pesan:\n${text}`];
       }
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: contents,
-      });
+      const modelsToTry = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
+      let responseText = "";
+      let lastError: any = null;
 
-      const responseText = response.text || "";
+      for (const modelName of modelsToTry) {
+        try {
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: contents,
+          });
+          if (response?.text) {
+            responseText = response.text;
+            break;
+          }
+        } catch (err: any) {
+          lastError = err;
+          console.warn(`Model ${modelName} call failed, trying next fallback...`, err?.message || err);
+        }
+      }
+
+      if (!responseText) {
+        const errStr = JSON.stringify(lastError || {});
+        const isQuotaError =
+          errStr.includes("429") ||
+          errStr.includes("quota") ||
+          errStr.includes("RESOURCE_EXHAUSTED") ||
+          lastError?.status === "RESOURCE_EXHAUSTED";
+
+        if (isQuotaError) {
+          return res.status(429).json({
+            error: "Batas kuota gratis AI (Gemini Rate Limit) tercapai. Silakan coba beberapa saat lagi atau isi formulir secara manual.",
+          });
+        }
+
+        return res.status(500).json({
+          error: lastError?.message || "Gagal memproses data tagihan menggunakan Gemini AI.",
+        });
+      }
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsedData = JSON.parse(jsonMatch[0]);
