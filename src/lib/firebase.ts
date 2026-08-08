@@ -18,19 +18,11 @@ import {
   onSnapshot,
   query,
   orderBy,
-  Firestore
+  Firestore,
+  getDocFromServer
 } from 'firebase/firestore';
+import firebaseConfig from '../../firebase-applet-config.json';
 import { StrukItem, StoreConfig } from '../types';
-
-// Web Firebase config (uses environment variables or fallback configuration)
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDummyKeyForAppletDemoOnly12345",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "strukkilat-app.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "strukkilat-app",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "strukkilat-app.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "123456789012",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:123456789012:web:abcdef123456789"
-};
 
 let app: FirebaseApp;
 if (!getApps().length) {
@@ -40,7 +32,7 @@ if (!getApps().length) {
 }
 
 export const auth = getAuth(app);
-export const db: Firestore = getFirestore(app);
+export const db: Firestore = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets');
@@ -181,5 +173,11 @@ export function subscribeToStoreConfig(onData: (config: StoreConfig) => void) {
 }
 
 export async function testFirestoreConnection() {
-  console.log('Firebase initialized successfully.');
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error("Please check your Firebase configuration.");
+    }
+  }
 }

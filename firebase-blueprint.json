@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "StrukItem": {
+      "title": "StrukItem",
+      "description": "Bukti transaksi struk pembayaran PLN atau Internet WiFi",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "type": { "type": "string", "enum": ["LISTRIK", "INTERNET"] },
+        "transactionDate": { "type": "string", "maxLength": 100 },
+        "refNo": { "type": "string", "maxLength": 100 },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "customerId": { "type": "string", "maxLength": 100 },
+        "provider": { "type": "string", "maxLength": 100 },
+        "tariffPower": { "type": "string", "maxLength": 100 },
+        "packageName": { "type": "string", "maxLength": 100 },
+        "mainAmount": { "type": "number" },
+        "adminFee": { "type": "number" },
+        "ppnAmount": { "type": "number" },
+        "penaltyFee": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "paymentStatus": { "type": "string", "enum": ["LUNAS", "PENDING"] },
+        "paymentMethod": { "type": "string", "maxLength": 50 },
+        "tokenNumber": { "type": "string", "maxLength": 50 },
+        "kwhEstimate": { "type": "string", "maxLength": 50 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "type", "transactionDate", "refNo", "customerName", "customerId", "provider", "mainAmount", "adminFee", "totalAmount", "paymentStatus", "paymentMethod", "createdAt"]
+    },
+    "StoreConfig": {
+      "title": "StoreConfig",
+      "description": "Pengaturan informasi toko dan biaya admin default",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string", "maxLength": 150 },
+        "storeAddress": { "type": "string", "maxLength": 300 },
+        "storePhone": { "type": "string", "maxLength": 50 },
+        "storeFooter": { "type": "string", "maxLength": 300 },
+        "defaultAdminFeeListrik": { "type": "number" },
+        "defaultAdminFeeInternet": { "type": "number" },
+        "defaultPaperSize": { "type": "string", "maxLength": 20 }
+      },
+      "required": ["storeName", "storeAddress", "storePhone", "storeFooter"]
+    }
+  },
+  "firestore": {
+    "/struk_history/{receiptId}": {
+      "schema": { "$ref": "#/entities/StrukItem" },
+      "description": "Koleksi riwayat transaksi struk"
+    },
+    "/store_settings/{configId}": {
+      "schema": { "$ref": "#/entities/StoreConfig" },
+      "description": "Koleksi pengaturan toko"
+    }
+  }
+}

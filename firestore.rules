@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Allow read/write for receipts
+    match /struk_history/{receiptId} {
+      allow read, write: if true;
+    }
+
+    // Allow read/write for store settings
+    match /store_settings/{configId} {
+      allow read, write: if true;
+    }
+  }
+}
