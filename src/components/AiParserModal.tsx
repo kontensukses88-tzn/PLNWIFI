@@ -56,7 +56,18 @@ export const AiParserModal: React.FC<AiParserModalProps> = ({ onParsedResult, st
         }),
       });
 
-      const resData = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      let resData: any = {};
+      if (contentType.includes('application/json')) {
+        resData = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(
+          response.status === 404
+            ? 'Endpoint API tidak ditemukan (/api/parse-bill).'
+            : `Respon server tidak valid (${response.status}): ${text.slice(0, 80)}`
+        );
+      }
 
       if (!response.ok || !resData.success) {
         throw new Error(resData.error || 'Gagal mengekstrak data tagihan.');

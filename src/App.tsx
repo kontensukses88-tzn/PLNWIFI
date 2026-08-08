@@ -24,6 +24,7 @@ import {
   subscribeToReceipts,
   saveReceiptToFirestore,
   deleteReceiptFromFirestore,
+  clearAllReceiptsFromFirestore,
   subscribeToStoreConfig,
   saveStoreConfigToFirestore,
   testFirestoreConnection
@@ -51,7 +52,7 @@ export default function App() {
 
     // Realtime Sync for Receipts from Firestore
     const unsubscribeReceipts = subscribeToReceipts((cloudReceipts) => {
-      if (cloudReceipts && cloudReceipts.length > 0) {
+      if (Array.isArray(cloudReceipts)) {
         setHistory(cloudReceipts);
         saveReceiptHistory(cloudReceipts);
       }
@@ -151,6 +152,7 @@ export default function App() {
   const handleClearHistory = () => {
     saveReceiptHistory([]);
     setHistory([]);
+    clearAllReceiptsFromFirestore();
   };
 
   const handleSaveConfig = (newConfig: StoreConfig) => {

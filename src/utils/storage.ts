@@ -93,16 +93,16 @@ export const saveStoreConfig = (config: StoreConfig): void => {
 export const loadReceiptHistory = (): StrukItem[] => {
   try {
     const saved = localStorage.getItem(RECEIPT_HISTORY_KEY);
-    if (saved) {
+    if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
   } catch (e) {
     console.error('Error loading history:', e);
   }
-  // Default sample history if empty
+  // Default sample history only on initial clean load
   saveReceiptHistory(SAMPLE_RECEIPTS);
   return SAMPLE_RECEIPTS;
 };

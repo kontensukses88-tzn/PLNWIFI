@@ -19,7 +19,9 @@ import {
   query,
   orderBy,
   Firestore,
-  getDocFromServer
+  getDocFromServer,
+  getDocs,
+  writeBatch
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 import { StrukItem, StoreConfig } from '../types';
@@ -114,6 +116,24 @@ export async function deleteReceiptFromFirestore(id: string): Promise<void> {
     await deleteDoc(receiptRef);
   } catch (error) {
     console.warn('Firestore delete warning:', error);
+  }
+}
+
+/**
+ * Clear All Receipts from Firestore
+ */
+export async function clearAllReceiptsFromFirestore(): Promise<void> {
+  try {
+    const q = collection(db, 'struk_history');
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return;
+    const batch = writeBatch(db);
+    snapshot.forEach((docSnap) => {
+      batch.delete(docSnap.ref);
+    });
+    await batch.commit();
+  } catch (error) {
+    console.warn('Firestore clear all warning:', error);
   }
 }
 

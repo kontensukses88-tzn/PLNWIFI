@@ -17,9 +17,10 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  // AI OCR / Text Parsing for Receipt Auto-Fill
-  app.post("/api/parse-bill", async (req, res) => {
+  // AI OCR / Text Parsing for Receipt Auto-Fill Handler
+  const parseBillHandler = async (req: express.Request, res: express.Response) => {
     try {
+      res.setHeader('Content-Type', 'application/json');
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
         return res.status(400).json({
@@ -82,9 +83,17 @@ Ekstrak data berikut dari teks/gambar yang diberikan ke dalam JSON persis dengan
         return res.status(400).json({ error: "Gagal mengekstrak struktur data dari input." });
       }
     } catch (err: any) {
-      console.error("Error in /api/parse-bill:", err);
+      console.error("Error in parse-bill:", err);
       res.status(500).json({ error: err.message || "Terjadi kesalahan saat memproses data tagihan." });
     }
+  };
+
+  app.post("/api/parse-bill", parseBillHandler);
+  app.post("/api/parse-struk", parseBillHandler);
+
+  // Fallback 404 for all unhandled /api/* calls so they return JSON instead of HTML
+  app.all("/api/*", (_req, res) => {
+    res.status(404).json({ error: "API route tidak ditemukan." });
   });
 
   // Vite middleware for dev or Static file serving for production
